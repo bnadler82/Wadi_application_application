@@ -4,10 +4,10 @@ from google.genai import types
 from google.genai.errors import APIError
 
 # Page Configuration
-st.set_page_config(page_title="Lead Enrichment & Personalization Engine", page_icon="🎯", layout="wide")
+st.set_page_config(page_title="LLM Optimization Auditor", page_icon="🔍", layout="wide")
 
-st.title("🎯 AI Lead Enrichment & Personalization Engine")
-st.caption("Automated company research, marketing bottleneck identification, and hyper-personalized outreach generation.")
+st.title("🔍 LLM Optimization & Visibility Auditor")
+st.caption("Evaluate how your website is parsed, understood, and cited by Large Language Models.")
 
 # 1. Validate Streamlit Secrets
 if "GEMINI_API_KEY" not in st.secrets:
@@ -25,100 +25,78 @@ except Exception as e:
     st.error(f"Failed to initialize Gemini Client: {e}")
     st.stop()
 
-# 3. Sidebar Configuration
-st.sidebar.header("Outreach Settings")
-sender_name = st.sidebar.text_input("Your Name", value="Benjamin Nadler")
-sender_role = st.sidebar.text_input("Your Role", value="Product Marketing Manager")
-creativity = st.sidebar.slider("Creativity (Temperature)", 0.0, 1.0, 0.7)
+# 3. Sidebar: Context & Alignment Parameters
+st.sidebar.header("🎯 Strategic Context Alignment")
+st.sidebar.info("Provide the baseline context so the LLM audits the domain accurately against your target market.")
 
-# 4. Main App Interface
+industry = st.sidebar.text_input("Target Industry", placeholder="e.g., Cybersecurity SaaS, B2B MarTech")
+strategic_angle = st.sidebar.text_area(
+    "Strategic Angle / Differentiator", 
+    placeholder="e.g., We focus heavily on data privacy compliance and technical automation for enterprise infrastructure."
+)
+target_demographic = st.sidebar.text_input("Target Demographic", placeholder="e.g., CISOs, Heads of Growth, IT Directors")
+
+# 4. Main App Interface - Inputs
+st.subheader("Company Website to Audit")
 col1, col2 = st.columns([1, 1])
 
 with col1:
-    st.subheader("Target Prospect Info")
     company_name = st.text_input("Company Name", placeholder="e.g., Acme Corp")
-    company_domain = st.text_input("Company Website (Optional)", placeholder="e.g., www.acme.com")
-    prospect_name = st.text_input("Prospect Name", placeholder="e.g., Jane Doe")
-    prospect_role = st.text_input("Prospect Role/Title", placeholder="e.g., Head of Growth")
+    company_url = st.text_input("Website URL", placeholder="e.g., https://www.acme.com")
     
-    additional_context = st.text_area(
-        "Extra Context / Observations", 
-        placeholder="e.g., They recently launched a new SaaS platform, but their blog hasn't been updated in 6 months..."
-    )
-    
-    submit_button = st.button("🚀 Analyze & Generate Outreach", use_container_width=True)
+    submit_button = st.button("🚀 Run LLM Visibility Audit", use_container_width=True)
 
-# 5. Pipeline Execution
+# 5. Audit Execution Pipeline
 if submit_button:
-    if not company_name or not prospect_name:
-        st.warning("⚠️ Please provide at least the Company Name and Prospect Name to start.")
+    if not company_name or not company_url:
+        st.warning("⚠️ Please provide both the Company Name and Website URL to run the audit.")
+    elif not industry or not target_demographic:
+        st.warning("⚠️ Please fill out the Industry and Target Demographic in the sidebar to ensure proper context alignment.")
     else:
         with col2:
-            st.subheader("Analysis & Outreach Output")
+            st.subheader("LLM Audit Report")
             
-            # Step 1: Deep Research & Bottleneck Analysis
-            with st.spinner("🕵️‍♂️ Researching company and finding marketing gaps..."):
-                research_prompt = f"""
-                You are an expert growth marketer and product marketing manager. 
-                Conduct an analysis on the company '{company_name}' ({company_domain if company_domain else 'No website provided'}).
+            with st.spinner(f"🕵️‍♂️ Fetching and analyzing {company_name}'s digital footprint for LLM readiness..."):
+                audit_prompt = f"""
+                You are an expert AI Search Optimization (GEO) and technical marketing consultant. 
+                Your task is to audit the company '{company_name}' ({company_url}) to determine how effectively it positions itself to be understood, categorized, and recommended by Large Language Models (LLMs) and AI Search Engines (like Perplexity, Gemini, and OpenAI Search).
                 
-                Additional notes provided: {additional_context if additional_context else 'None'}
+                CRITICAL CONTEXT ALIGNMENT PARAMETERS:
+                - Target Industry: {industry}
+                - Strategic Angle/Value Proposition: {strategic_angle if strategic_angle else 'Not specified'}
+                - Target Demographic/Decision Maker: {target_demographic}
                 
-                Provide a structured report covering:
-                1. Main value proposition of the company.
-                2. Potential marketing bottlenecks or growth gaps they face (e.g., gaps in content strategy, share of voice, performance marketing, conversion optimization).
+                Please generate a structured, professional audit covering the following two core pillars:
+
+                ### 1. TECHNICAL READINESS SIDE
+                - **Indexability & Crawling:** Analyze potential risks with LLM user-agents (e.g., GPTBot, Google-Extended) and robots.txt posture.
+                - **Structured Data & Schema:** Highlight how they should use Schema markup (e.g., Product, Organization, TechArticle) to reinforce entity data for LLM knowledge graphs.
+                - **Entity Association:** Evaluate how clearly the site's metadata defines "who they are" and "what they do" within their target industry.
+
+                ### 2. LANGUAGE & CONTENT STRATEGY SIDE
+                - **Information Density:** Evaluate if the content directly answers core industry questions or if it relies too heavily on vague marketing fluff that confuses LLM embeddings.
+                - **Clarity of Entity & Concept Associations:** How well does the content map to the specific strategic angle and target demographic mentioned above?
+                - **Objectivity & Authority Tone:** LLMs favor objective, high-utility content for citations. Analyze the tone of the copy.
+
+                ### 3. ACTIONABLE IMPROVEMENT SUGGESTIONS
+                Provide a concrete, bulleted checklist of changes to make on the technical side and content side to improve LLM visibility and citation rates.
                 """
                 
                 try:
-                    # Using Google Search Grounding to simulate live research if available, or deep reasoning via flash
-                    research_response = client.models.generate_content(
+                    # Utilizing Live Search grounding to evaluate the company's real-time footprint
+                    response = client.models.generate_content(
                         model='gemini-2.5-flash',
-                        contents=research_prompt,
+                        contents=audit_prompt,
                         config=types.GenerateContentConfig(
-                            temperature=creativity,
-                            # Optional: adds live Google Search to ground the analysis if domain is real
-                            tools=[{"google_search": {}}] if company_domain else None 
+                            temperature=0.4, # Lower temperature for analytical rigor
+                            tools=[{"google_search": {}}]
                         )
                     )
-                    research_result = research_response.text
                     
-                    with st.expander("📊 View Company Research & Bottlenecks", expanded=True):
-                        st.markdown(research_result)
-                        
-                except APIError as e:
-                    st.error(f"API Error during research: {e}")
-                    st.stop()
-            
-            # Step 2: Personalized Outreach Generation
-            with st.spinner("✍️ Crafting hyper-personalized email pipeline..."):
-                email_prompt = f"""
-                Based on the following research about {company_name}:
-                ---
-                {research_result}
-                ---
-                
-                Write a high-converting, personalized cold outreach email to {prospect_name}, who is the {prospect_role}.
-                The email must explicitly tie back to one of the identified marketing bottlenecks and offer a clear, low-friction value add.
-                
-                Sender Info:
-                - Name: {sender_name}
-                - Title: {sender_role}
-                
-                Guidelines:
-                - Subject line must be punchy and highly relevant (no cheesy clickbait).
-                - Keep the email body short, professional, and entirely focused on helping THEM scale or solve a technical efficiency gap.
-                - Do not sound like a generic template.
-                """
-                
-                try:
-                    email_response = client.models.generate_content(
-                        model='gemini-2.5-flash',
-                        contents=email_prompt,
-                        config=types.GenerateContentConfig(temperature=creativity)
-                    )
-                    
-                    st.success("✉️ Generated Outreach Email")
-                    st.code(email_response.text, language="markdown")
+                    st.success("✅ Audit Complete!")
+                    st.markdown(response.text)
                     
                 except APIError as e:
-                    st.error(f"API Error during email generation: {e}")
+                    st.error(f"API Error during the audit pipeline: {e}")
+                except Exception as e:
+                    st.error(f"An unexpected error occurred: {e}")
